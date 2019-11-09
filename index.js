@@ -1,13 +1,30 @@
-const Discord = require('discord.js');
-const {
-	prefix,
-	token,
-} = require('./config.json');
+const { Client} = require("discord.js");
+const { config } = require("dotenv");
 const ytdl = require('ytdl-core');
 
-const client = new Discord.Client();
+const client = new Client({
+    disableEveryone: true
+});
+
+config({
+    path: __dirname + "/.env"
+});
 
 const queue = new Map();
+
+worker: node index.js
+
+client.on("ready", () => {
+    console.log(`Hi, ${client.user.username} is now online!`);
+
+    client.user.setPresence({
+        status: "online",
+        game: {
+            name: "Hera x Alice <3",
+            type: "STREAMING"
+        }
+    }); 
+});
 
 client.once('ready', () => {
 	console.log('Ready!');
@@ -42,6 +59,25 @@ client.on('message', async message => {
 });
 
 async function execute(message, serverQueue) {
+	client.on("message", async message => {
+		const prefix = "'";
+	
+		if (message.author.bot) return;
+		if (!message.guild) return;
+		if (!message.content.startsWith(prefix)) return;
+		if (!message.member) message.member = await message.guild.fetchMember(message);
+	
+		const args = message.content.slice(prefix.length).trim().split(/ +/g);
+		const cmd = args.shift().toLowerCase();
+		
+		if (cmd.length === 0) return;
+		
+		let command = client.commands.get(cmd);
+		if (!command) command = client.commands.get(client.aliases.get(cmd));
+	
+		if (command) 
+			command.run(client, message, args);
+	});
 	const args = message.content.split(' ');
 
 	const voiceChannel = message.member.voiceChannel;
@@ -121,4 +157,4 @@ function play(guild, song) {
 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 }
 
-client.login(token);
+client.login(process.env.TOKEN);
